@@ -2,16 +2,8 @@ package snake
 
 import (
 	"fmt"
+	"snek/input"
 	"snek/renderer/rendercell"
-)
-
-type Direction string
-
-const (
-	LEFT  Direction = "LEFT"
-	RIGHT Direction = "RIGHT"
-	UP    Direction = "UP"
-	DOWN  Direction = "DOWN"
 )
 
 type SnakeSegment struct {
@@ -24,7 +16,7 @@ type Snake struct {
 	// these two positions are the position of the snake's head
 	PositionX          int
 	PositionY          int
-	lastMovedDirection Direction
+	lastMovedDirection input.Direction
 	segments           []*SnakeSegment
 }
 
@@ -42,26 +34,7 @@ func New(startingSize int, startX int, startY int) *Snake {
 		PositionX:          startX,
 		PositionY:          startY,
 		segments:           segments,
-		lastMovedDirection: DOWN,
-	}
-}
-
-func (s *Snake) finishMove() {
-	// iterate backwards over the segments in the Snake, update their coords
-	for i := s.size - 1; i >= 0; i-- {
-		// we could just start at 1, but leaving this here in case there's more logic we want to do on each
-		// segment
-		seg := s.segments[i]
-		fmt.Printf("seg: %v", seg)
-		if i == 0 {
-			seg.x = s.PositionX
-			seg.y = s.PositionY
-		} else {
-			// if we index outside the slice, we get a runtime exception :D
-			prev := s.segments[i-1]
-			seg.x = prev.x
-			seg.y = prev.y
-		}
+		lastMovedDirection: input.DOWN,
 	}
 }
 
@@ -83,61 +56,53 @@ func (s *Snake) CollisionWithSelf() bool {
 	return false
 }
 
-// func move(x int, y int) {
-
-// }
-
-// @TODO: Combine these into one method and instead take in a Direction as an argument instead of ints
-func (s *Snake) MoveX(n int) {
+func (s *Snake) Move(d input.Direction) {
 	lastMove := s.lastMovedDirection
-	originalX := s.PositionX
-	if n < 0 {
-		s.lastMovedDirection = LEFT
-	} else if n > 0 {
-		s.lastMovedDirection = RIGHT
-	} else {
-		panic("Snake did not move, crashing my shit")
-	}
-	if lastMove == LEFT || lastMove == RIGHT {
-		if lastMove == s.lastMovedDirection {
-			s.PositionX += n
-		} else {
-			fmt.Println("Not moving Snake X")
-			panic("BUGGG")
+	moved := false
+	s.lastMovedDirection = d
+	switch s.lastMovedDirection {
+	case input.UP:
+		if lastMove != input.DOWN {
+			s.PositionY -= 1
+			moved = true
 		}
-	} else {
-		s.PositionX += n
-	}
-	fmt.Printf("Original and new position X: %v %v", lastMove, s.lastMovedDirection)
-	if originalX != s.PositionX {
-		s.finishMove()
-	}
-}
-
-func (s *Snake) MoveY(n int) {
-	lastMove := s.lastMovedDirection
-	originalY := s.PositionY
-	if n < 0 {
-		s.lastMovedDirection = UP
-	} else if n > 0 {
-		s.lastMovedDirection = DOWN
-	} else {
-		panic("Snake did not move, crashing my shit")
-	}
-	if lastMove == UP || lastMove == DOWN {
-		if lastMove == s.lastMovedDirection {
-			s.PositionY += n
-		} else {
-			fmt.Println("Not moving Snake Y")
-			panic("BUGGG")
+	case input.DOWN:
+		if lastMove != input.UP {
+			s.PositionY += 1
+			moved = true
 		}
-	} else {
-		s.PositionY += n
+	case input.LEFT:
+		if lastMove != input.RIGHT {
+			s.PositionX -= 1
+			moved = true
+		}
+	case input.RIGHT:
+		if lastMove != input.LEFT {
+			s.PositionX += 1
+			moved = true
+		}
+	default:
+		panic("Received Direction argument that was not UP/DOWN/LEFT/RIGHT")
 	}
 
-	fmt.Printf("Original and new position Y: %v %v", lastMove, s.lastMovedDirection)
-	if originalY != s.PositionY {
-		s.finishMove()
+	if !moved {
+		return
+	}
+
+	for i := s.size - 1; i >= 0; i-- {
+		// we could just start at 1, but leaving this here in case there's more logic we want to do on each
+		// segment
+		seg := s.segments[i]
+		// fmt.Printf("seg: %v", seg)
+		if i == 0 {
+			seg.x = s.PositionX
+			seg.y = s.PositionY
+		} else {
+			// if we index outside the slice, we get a runtime exception :D
+			prev := s.segments[i-1]
+			seg.x = prev.x
+			seg.y = prev.y
+		}
 	}
 }
 
@@ -183,13 +148,13 @@ func (s *Snake) Draw(x int, y int) rendercell.RenderCell {
 			return "▣"
 		} else {
 			switch s.lastMovedDirection {
-			case UP:
+			case input.UP:
 				return "▲"
-			case DOWN:
+			case input.DOWN:
 				return "▼"
-			case RIGHT:
+			case input.RIGHT:
 				return "▶"
-			case LEFT:
+			case input.LEFT:
 				return "◀"
 			default:
 				return "▼"

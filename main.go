@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"snek/gameboard"
+	"snek/input"
 	"snek/renderer"
 	"snek/snake"
 )
@@ -10,28 +11,35 @@ import (
 func main() {
 	rowCount := 10
 	columnCount := 10
-	snake := snake.New(5, rowCount/2, columnCount/2)
+	snake := snake.New(3, rowCount/2, columnCount/2)
 	gb := gameboard.New(10, 10, snake)
-	fmt.Printf("%v %v %v\n", gb.Width, gb.Height, gb.Snake)
+	// fmt.Printf("%v %v %v\n", gb.Width, gb.Height, gb.Snake)
 	r := renderer.New('·', '|', '_')
 	r.RenderView(gb, snake)
+	gb.SpawnFood()
 	i := 0
 	for !gb.SnakeOutsideBounds(snake) && !snake.CollisionWithSelf() {
 		switch i {
 		case 2:
-			snake.MoveX(-1)
+			snake.Move(input.LEFT)
 			break
 		case 4:
-			snake.MoveX(1)
+			snake.Move(input.RIGHT)
+			break
+		case 5:
+			snake.Move(input.UP)
+			break
+		case 6:
+			snake.Move(input.RIGHT)
 			break
 		default:
-			snake.MoveY(1)
+			snake.Move(input.DOWN)
 			break
 		}
 		gb.Tick()
-		fmt.Printf("%+v\n", gb.Snake)
-		fmt.Println("Moving the snake!")
-		snake.PrintSegments()
+		// fmt.Printf("%+v\n", gb.Snake)
+		// fmt.Println("Moving the snake!")
+		// snake.PrintSegments()
 		i++
 		r.RenderView(gb, snake)
 	}

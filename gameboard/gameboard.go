@@ -38,8 +38,9 @@ func New(rowCount int, columnCount int, snake *snake.Snake) *GameBoard {
 	return &GameBoard{Snake: snake, Width: rowCount, Height: columnCount}
 }
 
+// due to using a _ and ▔ character we need to offset things by 1 to make it look right
 func (gb *GameBoard) SnakeOutsideBounds(snake *snake.Snake) bool {
-	if (snake.PositionX <= 0 || snake.PositionX >= gb.Width) || (snake.PositionY <= 0 || snake.PositionY >= gb.Height) {
+	if (snake.PositionX <= 0 || snake.PositionX >= gb.Width) || (snake.PositionY <= 1 || snake.PositionY >= gb.Height-1) {
 		return true
 	}
 	return false
@@ -48,7 +49,7 @@ func (gb *GameBoard) SnakeOutsideBounds(snake *snake.Snake) bool {
 func (gb *GameBoard) SpawnFood() {
 	// @TODO: spawn these randomly in a location not occupied by the snake and within the bounds of the board
 	x := 5
-	y := 10
+	y := 6
 	gb.Food = food.New(x, y)
 }
 
@@ -81,12 +82,18 @@ func (gb *GameBoard) Draw(x int, y int) rendercell.RenderCell {
 		}
 	}
 	// @TODO: this doesn't take into account when we have overlapping characters with the snake I guess
-	if x == 0 || x == gb.Width-1 {
-		return "|"
+	// if x == 0 || x == gb.Width-1 {
+	// 	return "|"
+	// } else
+	// leaving this here for if I want to handle corners differently ever
+	if (x == 0 && (y == 0 || y == gb.Height-1)) || (x == gb.Width-1 && (y == 0 || y == gb.Height-1)) {
+		return " "
 	} else if y == 0 {
-		return "▔"
+		return "-"
 	} else if y == gb.Height-1 {
-		return "_"
+		return "-"
+	} else if x == 0 || x == gb.Width-1 {
+		return "|"
 	}
 	return "·"
 }
