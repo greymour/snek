@@ -8,7 +8,6 @@ import (
 type Direction string
 
 const (
-	START Direction = "START"
 	LEFT  Direction = "LEFT"
 	RIGHT Direction = "RIGHT"
 	UP    Direction = "UP"
@@ -43,7 +42,7 @@ func New(startingSize int, startX int, startY int) *Snake {
 		PositionX:          startX,
 		PositionY:          startY,
 		segments:           segments,
-		lastMovedDirection: START,
+		lastMovedDirection: DOWN,
 	}
 }
 
@@ -99,7 +98,7 @@ func (s *Snake) MoveX(n int) {
 	} else {
 		panic("Snake did not move, crashing my shit")
 	}
-	if lastMove != START && (lastMove == LEFT || lastMove == RIGHT) {
+	if lastMove == LEFT || lastMove == RIGHT {
 		if lastMove == s.lastMovedDirection {
 			s.PositionX += n
 		} else {
@@ -125,7 +124,7 @@ func (s *Snake) MoveY(n int) {
 	} else {
 		panic("Snake did not move, crashing my shit")
 	}
-	if lastMove != START && (lastMove == UP || lastMove == DOWN) {
+	if lastMove == UP || lastMove == DOWN {
 		if lastMove == s.lastMovedDirection {
 			s.PositionY += n
 		} else {

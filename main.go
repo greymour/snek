@@ -10,47 +10,31 @@ import (
 func main() {
 	rowCount := 10
 	columnCount := 10
-	snake := snake.New(3, rowCount/2, columnCount/2)
+	snake := snake.New(5, rowCount/2, columnCount/2)
 	gb := gameboard.New(10, 10, snake)
 	fmt.Printf("%v %v %v\n", gb.Width, gb.Height, gb.Snake)
 	r := renderer.New('·', '|', '_')
 	r.RenderView(gb, snake)
-	gb.SpawnFoodAt(5, 6)
-	r.RenderView(gb, snake)
-	snake.MoveY(-1)
-	r.RenderView(gb, snake)
-	snake.MoveX(-1)
-	r.RenderView(gb, snake)
-	snake.MoveY(-1)
-	r.RenderView(gb, snake)
-	snake.MoveX(1)
-	r.RenderView(gb, snake)
-	if snake.CollisionWithSelf() {
-		fmt.Println("Snake collided with itself!")
-		fmt.Printf("%+v\n", snake)
+	i := 0
+	for !gb.SnakeOutsideBounds(snake) && !snake.CollisionWithSelf() {
+		switch i {
+		case 2:
+			snake.MoveX(-1)
+			break
+		case 4:
+			snake.MoveX(1)
+			break
+		default:
+			snake.MoveY(1)
+			break
+		}
+		gb.Tick()
+		fmt.Printf("%+v\n", gb.Snake)
+		fmt.Println("Moving the snake!")
+		snake.PrintSegments()
+		i++
+		r.RenderView(gb, snake)
 	}
-
-	// r.RenderView(gb, snake)
-	// i := 0
-	// for !gb.SnakeOutsideBounds(snake) && !snake.CollisionWithSelf() {
-	// 	switch i {
-	// 	case 2:
-	// 		snake.MoveX(-1)
-	// 		break
-	// 	case 4:
-	// 		snake.MoveX(1)
-	// 		break
-	// 	default:
-	// 		snake.MoveY(1)
-	// 		break
-	// 	}
-	// 	gb.Tick()
-	// 	fmt.Printf("%+v\n", gb.Snake)
-	// 	fmt.Println("Moving the snake!")
-	// 	snake.PrintSegments()
-	// 	i++
-	// 	r.RenderView(gb, snake)
-	// }
 	fmt.Println("It's joever!")
 }
 
