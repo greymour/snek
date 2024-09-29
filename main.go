@@ -1,11 +1,12 @@
 package main
 
 import (
-	"fmt"
+	// "fmt"
 	"snek/gameboard"
 	"snek/input"
 	"snek/renderer"
 	"snek/snake"
+	"time"
 )
 
 func main() {
@@ -42,8 +43,9 @@ func main() {
 		// snake.PrintSegments()
 		i++
 		r.RenderView(gb, snake)
+		time.Sleep(1 * time.Second)
 	}
-	fmt.Println("It's joever!")
+	// fmt.Println("It's joever!")
 }
 
 // structure

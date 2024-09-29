@@ -2,6 +2,7 @@ package renderer
 
 import (
 	"fmt"
+	"golang.org/x/term"
 	"snek/gameboard"
 	"snek/renderer/rendercell"
 	"snek/snake"
@@ -46,17 +47,22 @@ func New(emptyCell rune, borderX rune, borderY rune) *Renderer {
 // @TODO: this is suuuuper coupled to the GameBoard, most of this logic should get moved into
 // that struct's Draw method probably
 func (r *Renderer) CreateViewModel(gb *gameboard.GameBoard, s *snake.Snake) {
+	width, height, err := term.GetSize(0)
+	if err != nil {
+		panic("could not get size of window, rip")
+	}
 	r.View = [][]rendercell.RenderCell{{}}
 	r.numRows = 0
 	r.size = 0
+	centreStart := (width - gb.Width) / 2
 	currentRow := 0
 	currentCol := 0
 	// width := gb.Width + 1
 	// height := gb.Height + 1
-	limit := gb.Width * gb.Height
+	limit := width * height
 	for i := 0; i < limit; i++ {
 		// push in a new slice to start appending to wowie
-		if i > 0 && i%gb.Width == 0 {
+		if i > 0 && i%width == 0 {
 			r.View = append(r.View, []rendercell.RenderCell{})
 			currentCol = 0
 			currentRow++
@@ -67,7 +73,7 @@ func (r *Renderer) CreateViewModel(gb *gameboard.GameBoard, s *snake.Snake) {
 		if s.HasCellAt(currentCol, currentRow) {
 			cell = s.Draw(currentCol, currentRow)
 		} else {
-			cell = gb.Draw(currentCol, currentRow)
+			cell = gb.Draw(currentCol-centreStart, currentRow)
 		}
 		// fmt.Printf("%v %v %v", currentRow, r.View, cell)
 		r.View[currentRow] = append(r.View[currentRow], cell)
