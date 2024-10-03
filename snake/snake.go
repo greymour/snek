@@ -55,9 +55,7 @@ func (s *Snake) CollisionWithSelf() bool {
 	return false
 }
 
-// @TODO:
 func (s *Snake) Move(d input.Direction) {
-	fmt.Printf("moving snake %v\n", d)
 	lastMove := s.lastMovedDirection
 	moved := false
 	switch d {

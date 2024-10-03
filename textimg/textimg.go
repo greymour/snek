@@ -23,7 +23,6 @@ func New(filePath string, formatter TextImgFormatter) *TextImg {
 }
 
 func (ti *TextImg) Draw(parent [][]string) [][]string {
-	// fmt.Printf("data:\n%s \n %v \n %d", ti.rawdata, ti.data, len(ti.rawdata))
 	for i := 0; i < len(parent); i++ {
 		parent[i] = ti.data[i]
 	}

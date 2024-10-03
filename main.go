@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"snek/gameboard"
 	"snek/input"
 	"snek/renderer"
@@ -21,38 +22,8 @@ func main() {
 	gb.SpawnFood()
 	r := renderer.New()
 
-	fmt.Println("starting listen")
-	ib.OnInput(input.InputHandler{
-		Key: keyboard.KeyArrowDown,
-		Handler: func() {
-			fmt.Printf("MOVING DOWNNN\n")
-			snake.Move(input.DOWN)
-		}})
-
-	ib.OnInput(input.InputHandler{
-		Key: keyboard.KeyArrowUp,
-		Handler: func() {
-			snake.Move(input.UP)
-		}})
-
-	ib.OnInput(input.InputHandler{
-		Key: keyboard.KeyArrowRight,
-		Handler: func() {
-			snake.Move(input.RIGHT)
-		}})
-
-	ib.OnInput(input.InputHandler{
-		Key: keyboard.KeyArrowLeft,
-		Handler: func() {
-			snake.Move(input.LEFT)
-		}})
-
-	ib.OnInput(input.InputHandler{
-		Key: keyboard.KeyCtrlC,
-		Handler: func() {
-			exitChan <- 0
-		},
-	})
+	fmt.Println("Welcome to Snek! Starting game...")
+	fmt.Println("Press Left / Down / Right to start. Move the snake backwards to pause at any time. Press Ctrl+c to quit.")
 
 	quit := func() {
 		ib.Close()
@@ -64,9 +35,22 @@ func main() {
 
 	go ib.Listen()
 
-	tickRate := 1 / (gb.Score + 1)
+	setTickRate := func() time.Duration {
+		var convertedScore float64
+		if gb.Score < 1 {
+			convertedScore = 1.0
+		} else {
+			convertedScore = float64(gb.Score)
+		}
+		rate := 1.0 / ((convertedScore + 1.0) + math.Log(convertedScore)) * 1000
+		return time.Duration(rate) * time.Millisecond
+	}
 
-	for range time.Tick(time.Duration(tickRate) * time.Second) {
+	// time.Tick() doesn't work here because the ticker variable gets cached in the for loop
+	// using NewTicker() and Reset() breaks the cache and allows for the variable speed
+	ticker := time.NewTicker(setTickRate())
+	for range ticker.C {
+		score := gb.Score
 		if gb.SnakeOutsideBounds() || snake.CollisionWithSelf() {
 			quit()
 			return
@@ -86,5 +70,8 @@ func main() {
 		}
 		gb.Tick()
 		r.RenderView(gb)
+		if score != gb.Score {
+			ticker.Reset(setTickRate())
+		}
 	}
 }
