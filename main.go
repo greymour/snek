@@ -1,60 +1,90 @@
 package main
 
 import (
-	// "fmt"
+	"fmt"
 	"snek/gameboard"
 	"snek/input"
 	"snek/renderer"
 	"snek/snake"
 	"time"
+
+	"github.com/eiannone/keyboard"
 )
 
 func main() {
-	rowCount := 10
-	columnCount := 10
-	snake := snake.New(3, rowCount/2, columnCount/2)
-	gb := gameboard.New(10, 10, snake)
-	// fmt.Printf("%v %v %v\n", gb.Width, gb.Height, gb.Snake)
-	r := renderer.New('·', '|', '_')
-	r.RenderView(gb, snake)
+	inputChan := make(chan string)
+	syncChan := make(chan int)
+	exitChan := make(chan int)
+	ib := input.New(inputChan, syncChan, exitChan)
+	snake := snake.New(3, 5, 5)
+	gb := gameboard.New(15, 15, snake)
 	gb.SpawnFood()
-	i := 0
-	for !gb.SnakeOutsideBounds(snake) && !snake.CollisionWithSelf() {
-		switch i {
-		case 2:
-			snake.Move(input.LEFT)
-			break
-		case 4:
-			snake.Move(input.RIGHT)
-			break
-		case 5:
-			snake.Move(input.UP)
-			break
-		case 6:
-			snake.Move(input.RIGHT)
-			break
-		default:
+	r := renderer.New()
+
+	fmt.Println("starting listen")
+	ib.OnInput(input.InputHandler{
+		Key: keyboard.KeyArrowDown,
+		Handler: func() {
+			fmt.Printf("MOVING DOWNNN\n")
 			snake.Move(input.DOWN)
-			break
+		}})
+
+	ib.OnInput(input.InputHandler{
+		Key: keyboard.KeyArrowUp,
+		Handler: func() {
+			snake.Move(input.UP)
+		}})
+
+	ib.OnInput(input.InputHandler{
+		Key: keyboard.KeyArrowRight,
+		Handler: func() {
+			snake.Move(input.RIGHT)
+		}})
+
+	ib.OnInput(input.InputHandler{
+		Key: keyboard.KeyArrowLeft,
+		Handler: func() {
+			snake.Move(input.LEFT)
+		}})
+
+	ib.OnInput(input.InputHandler{
+		Key: keyboard.KeyCtrlC,
+		Handler: func() {
+			exitChan <- 0
+		},
+	})
+
+	quit := func() {
+		ib.Close()
+		close(inputChan)
+		close(syncChan)
+		close(exitChan)
+		fmt.Printf("Good game! Your score: %d", gb.Score)
+	}
+
+	go ib.Listen()
+
+	tickRate := 1 / (gb.Score + 1)
+
+	for range time.Tick(time.Duration(tickRate) * time.Second) {
+		if gb.SnakeOutsideBounds() || snake.CollisionWithSelf() {
+			quit()
+			return
+		}
+		switch ib.LastInputKeyCode {
+		case keyboard.KeyCtrlC:
+			quit()
+			return
+		case keyboard.KeyArrowLeft:
+			snake.Move(input.LEFT)
+		case keyboard.KeyArrowUp:
+			snake.Move(input.UP)
+		case keyboard.KeyArrowRight:
+			snake.Move(input.RIGHT)
+		case keyboard.KeyArrowDown:
+			snake.Move(input.DOWN)
 		}
 		gb.Tick()
-		// fmt.Printf("%+v\n", gb.Snake)
-		// fmt.Println("Moving the snake!")
-		// snake.PrintSegments()
-		i++
-		r.RenderView(gb, snake)
-		time.Sleep(1 * time.Second)
+		r.RenderView(gb)
 	}
-	// fmt.Println("It's joever!")
 }
-
-// structure
-// a game board of a given size
-// the game board is made up of cells
-// a tick rate for how often the ui will update
-// the snake, controlled by the user
-// food that randomly spawns in a cell unoccupied by the snake
-// need to detect collisions between the edges of the board and the snake
-// need to detect collisions between the snake and itself
-// need to detect collisions between the snake and food
-// game board is a 2 dimensional array of x and y values

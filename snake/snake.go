@@ -3,7 +3,6 @@ package snake
 import (
 	"fmt"
 	"snek/input"
-	"snek/renderer/rendercell"
 )
 
 type SnakeSegment struct {
@@ -56,11 +55,12 @@ func (s *Snake) CollisionWithSelf() bool {
 	return false
 }
 
+// @TODO:
 func (s *Snake) Move(d input.Direction) {
+	fmt.Printf("moving snake %v\n", d)
 	lastMove := s.lastMovedDirection
 	moved := false
-	s.lastMovedDirection = d
-	switch s.lastMovedDirection {
+	switch d {
 	case input.UP:
 		if lastMove != input.DOWN {
 			s.PositionY -= 1
@@ -88,12 +88,12 @@ func (s *Snake) Move(d input.Direction) {
 	if !moved {
 		return
 	}
+	s.lastMovedDirection = d
 
 	for i := s.size - 1; i >= 0; i-- {
 		// we could just start at 1, but leaving this here in case there's more logic we want to do on each
 		// segment
 		seg := s.segments[i]
-		// fmt.Printf("seg: %v", seg)
 		if i == 0 {
 			seg.x = s.PositionX
 			seg.y = s.PositionY
@@ -118,7 +118,6 @@ func (s *Snake) HasCellAt(x int, y int) bool {
 
 // @TODO: need to know where the borders of the gameboard are here for where to put the tail
 func (s *Snake) EatFood(borderXStart int, borderXEnd int, borderYStart int, borderYEnd int) {
-	fmt.Printf("snake eating fooood")
 	lastSegment := s.segments[len(s.segments)-1]
 	x := lastSegment.x
 	y := lastSegment.y
@@ -138,30 +137,37 @@ func (s *Snake) EatFood(borderXStart int, borderXEnd int, borderYStart int, bord
 
 func (s *Snake) PrintSegments() {
 	for i := 0; i < len(s.segments); i++ {
-		fmt.Printf("segment: %+v", s.segments[i])
+		fmt.Printf("segment: %+v\n", s.segments[i])
 	}
 }
 
-func (s *Snake) Draw(x int, y int) rendercell.RenderCell {
-	if s.PositionX == x && s.PositionY == y {
-		if s.CollisionWithSelf() {
-			return "▣"
-		} else {
-			switch s.lastMovedDirection {
-			case input.UP:
-				return "▲"
-			case input.DOWN:
-				return "▼"
-			case input.RIGHT:
-				return "▶"
-			case input.LEFT:
-				return "◀"
-			default:
-				return "▼"
-			}
-		}
-	}
+func (s *Snake) Draw(parent [][]string) [][]string {
+	view := parent
 
-	// return "□"
-	return "■"
+	for i, v := range s.segments {
+		var character string
+
+		if i == 0 {
+			if s.CollisionWithSelf() {
+				character = "▣"
+			} else {
+				switch s.lastMovedDirection {
+				case input.UP:
+					character = "▲"
+				case input.DOWN:
+					character = "▼"
+				case input.RIGHT:
+					character = "▶"
+				case input.LEFT:
+					character = "◀"
+				default:
+					character = "▼"
+				}
+			}
+		} else {
+			character = "■"
+		}
+		parent[v.y][v.x] = character
+	}
+	return view
 }

@@ -10,3 +10,9 @@ type Food struct {
 func New(x int, y int) *Food {
 	return &Food{x, y, 5, 0}
 }
+
+func (f *Food) Draw(parent [][]string) [][]string {
+	view := parent
+	parent[f.PositionY][f.PositionX] = "♡"
+	return view
+}

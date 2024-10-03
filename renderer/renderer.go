@@ -3,92 +3,101 @@ package renderer
 import (
 	"fmt"
 	"golang.org/x/term"
-	"snek/gameboard"
-	"snek/renderer/rendercell"
-	"snek/snake"
+	"snek/utils"
 )
 
-type RenderCellOLD struct {
-	PositionX int
-	PositionY int
-	Content   rune
-}
-
-// func makeCell() *RenderCell {
-// 	return &RenderCell{0, 0, '~'}
-// }
-
 type Drawable interface {
-	Draw(int, int) rendercell.RenderCell
+	// @TODO: make this also return an error if there's a problem drawing the characters - eg. if the image being drawn
+	// is bigger than the parent
+	Draw(parent [][]string) [][]string
 	// maybe rename this to `OccupiesCell`?
 	HasCellAt(int, int) bool
 }
 
+type DrawableRoot interface {
+	Draw(parent [][]string, paddingX int, paddingY int) [][]string
+	GetWidth() int
+	GetHeight() int
+}
+
 type Renderer struct {
-	View          [][]rendercell.RenderCell
+	View          [][]string
 	EmptyCellChar rune
 	BorderXChar   rune
 	BorderYChar   rune
 	size          int
-	numRows       int
 }
 
-func New(emptyCell rune, borderX rune, borderY rune) *Renderer {
+func New() *Renderer {
 	return &Renderer{
-		View:          [][]rendercell.RenderCell{},
-		EmptyCellChar: emptyCell,
-		BorderXChar:   borderX,
-		BorderYChar:   borderY,
-		size:          0,
-		numRows:       0,
+		View: [][]string{},
+		size: 0,
 	}
 }
 
-// @TODO: this is suuuuper coupled to the GameBoard, most of this logic should get moved into
-// that struct's Draw method probably
-func (r *Renderer) CreateViewModel(gb *gameboard.GameBoard, s *snake.Snake) {
+func (r *Renderer) padTop(offsetY int) {
+	for i := len(r.View) - offsetY - 1; i >= 0; i-- {
+		r.View[i+offsetY] = r.View[i]
+		r.View[i] = []string{}
+	}
+}
+
+func (r *Renderer) padLeft(offsetX int) {
+	for i, row := range r.View {
+		padding := make([]string, offsetX)
+		utils.FillSlice(padding, " ")
+		newRow := append(padding, row...)
+		r.View[i] = newRow
+	}
+}
+
+// @TODO: implement these util functions
+func AlignLeft() {}
+
+func AlignRight() {}
+
+func AlignTop() {}
+
+func AlignBottom() {}
+
+func Center(parent [][]string, child [][]string) [][]string {
+	return [][]string{}
+}
+
+func (r *Renderer) CreateViewModel(root DrawableRoot) {
 	width, height, err := term.GetSize(0)
+	height = height - 2
+	offsetX := (width - root.GetWidth()) / 2
+	offsetY := (height - root.GetHeight()) / 2
+
 	if err != nil {
 		panic("could not get size of window, rip")
 	}
-	r.View = [][]rendercell.RenderCell{{}}
-	r.numRows = 0
-	r.size = 0
-	centreStart := (width - gb.Width) / 2
-	currentRow := 0
-	currentCol := 0
-	// width := gb.Width + 1
-	// height := gb.Height + 1
-	limit := width * height
-	for i := 0; i < limit; i++ {
-		// push in a new slice to start appending to wowie
-		if i > 0 && i%width == 0 {
-			r.View = append(r.View, []rendercell.RenderCell{})
-			currentCol = 0
-			currentRow++
-			r.numRows++
-		}
-		var cell rendercell.RenderCell
-		// here is where we decide what to draw, the character for an empty space or the snake!
-		if s.HasCellAt(currentCol, currentRow) {
-			cell = s.Draw(currentCol, currentRow)
-		} else {
-			cell = gb.Draw(currentCol-centreStart, currentRow)
-		}
-		// fmt.Printf("%v %v %v", currentRow, r.View, cell)
-		r.View[currentRow] = append(r.View[currentRow], cell)
-		currentCol++
-		r.size++
+	r.View = make([][]string, 0, height)
+	for i := 0; i < height; i++ {
+		newRow := make([]string, width, width)
+		utils.FillSlice(newRow, " ")
+		r.View = append(r.View, newRow)
 	}
-	// fmt.Printf("%+v", r)
+
+	r.View = root.Draw(r.View, offsetX, offsetY)
+	// why do I pad top twice? I stopped keeping track of the math a while ago
+	// answer: it's because I'm appending way too many rows at some point...
+	// so the first padTop shoves it down to the top of the viewport, and the second padTop
+	// moves it down 50%
+	// @TODO: FIX THE MATH
+	r.padTop(offsetY)
+	r.padTop(offsetY / 2)
+	r.padLeft(offsetX)
 }
 
-func (r *Renderer) RenderView(gb *gameboard.GameBoard, s *snake.Snake) {
+func (r *Renderer) RenderView(root DrawableRoot) {
+	r.CreateViewModel(root)
 	view := "\n"
-	r.CreateViewModel(gb, s)
-	for i := 0; i <= r.numRows; i++ {
-		for j := 0; j < len(r.View[i]); j++ {
-			view += string(r.View[i][j])
+
+	for _, row := range r.View {
+		for _, character := range row {
+			view += character
 		}
 		view += "\n"
 	}

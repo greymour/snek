@@ -1,9 +1,11 @@
 package gameboard
 
 import (
+	"fmt"
+	"math/rand/v2"
 	"snek/food"
-	"snek/renderer/rendercell"
 	"snek/snake"
+	"strings"
 )
 
 type Cell struct{}
@@ -13,43 +15,46 @@ type GameBoard struct {
 	Width  int
 	Height int
 	Food   *food.Food
-	// Cells [][]Cell
+	Score  int
+}
+
+const ROW_OFFSET = 1
+
+func (gb *GameBoard) GetWidth() int {
+	return gb.Width
+}
+
+func (gb *GameBoard) GetHeight() int {
+	return gb.Height
 }
 
 // right now we're just basing the bounds of the GameBoard on math calculations
 // there's no underlying data structure here
 func New(rowCount int, columnCount int, snake *snake.Snake) *GameBoard {
-	// this is wrong but eh
-	// columns := []Cell{}
-	// rows := []Cell{}
-	// cells := []Cell{}
-	// numRows := 0
-	// // I need to check if a list of columns exists at the current i idx
-	// // if not and i % columnCount is zero, we need to push a new list into cells
-	// // after that I need to push a new Cell
-	// for i := 0; i < rowCount; i++ {
-	// 	// need to append a new slice, start appending at that idx
-	// 	if i%columnCount == 0 {
-
-	// 	}
-	// 	rows = append(rows, Cell{})
-	// 	numRows++
-	// }
-	return &GameBoard{Snake: snake, Width: rowCount, Height: columnCount}
+	// adding 2 to the Height to allow for the "Score" read out and borders
+	return &GameBoard{Snake: snake,
+		Width:  rowCount,
+		Height: columnCount + 2,
+		Score:  0,
+	}
 }
 
 // due to using a _ and ▔ character we need to offset things by 1 to make it look right
-func (gb *GameBoard) SnakeOutsideBounds(snake *snake.Snake) bool {
-	if (snake.PositionX <= 0 || snake.PositionX >= gb.Width) || (snake.PositionY <= 1 || snake.PositionY >= gb.Height-1) {
+func (gb *GameBoard) SnakeOutsideBounds() bool {
+	if (gb.Snake.PositionX <= 0 || gb.Snake.PositionX >= gb.Width-1) || (gb.Snake.PositionY <= 1 || gb.Snake.PositionY >= gb.Height-1) {
 		return true
 	}
 	return false
 }
 
 func (gb *GameBoard) SpawnFood() {
-	// @TODO: spawn these randomly in a location not occupied by the snake and within the bounds of the board
-	x := 5
-	y := 6
+	gb.Food = nil
+	x := rand.IntN(gb.Width-2) + 1
+	y := rand.IntN(gb.Height-2-ROW_OFFSET) + 1 + ROW_OFFSET
+	for gb.Snake.HasCellAt(x, y) {
+		x = rand.IntN(gb.Width-2) + 1
+		y = rand.IntN(gb.Height-2-ROW_OFFSET) + 1 + ROW_OFFSET
+	}
 	gb.Food = food.New(x, y)
 }
 
@@ -57,43 +62,81 @@ func (gb *GameBoard) SpawnFoodAt(x int, y int) {
 	gb.Food = food.New(x, y)
 }
 
-func (gb *GameBoard) DespawnFood() {
-	gb.Food = nil
-}
-
-// do everything that we need to advance the game on tick of the program
-// @TODO: right now this doesn't handle user input at all
-// @TODO: this shouldn't live here I think maybe? dunno!
-// could put this in an Engine or Runtime object or s o m e t h i n g
 func (gb *GameBoard) Tick() {
 	if gb.Food != nil {
-		// @TODO: need to increment the life of the Food here
-		if (gb.Food.PositionX == gb.Snake.PositionX) && (gb.Food.PositionY == gb.Snake.PositionY) {
+		if gb.Snake.HasCellAt(gb.Food.PositionX, gb.Food.PositionY) {
+			// @TODO: need to increment the life of the Food here if I want that feature
 			gb.Snake.EatFood(0, gb.Width, 0, gb.Height)
 			gb.Food = nil
+			gb.Score++
+			gb.SpawnFood()
 		}
 	}
 }
 
-func (gb *GameBoard) Draw(x int, y int) rendercell.RenderCell {
-	if gb.Food != nil {
-		if gb.Food.PositionX == x && gb.Food.PositionY == y {
-			return "♡"
+func (gb *GameBoard) HasCellAt(x int, y int) bool {
+	if x < 0 || x > gb.Width-1 || y < 0 || y > gb.Height-1 {
+		return false
+	}
+	return true
+}
+
+func (gb *GameBoard) isCorner(x int, y int) bool {
+	if (x == 0 || x == gb.Width-1) && (y == ROW_OFFSET || y == gb.Height-1) {
+		return true
+	}
+	return false
+}
+
+func (gb *GameBoard) makeEmptyRow(y int) []string {
+	emptyRow := []string{}
+	for i := 0; i < gb.Width; i++ {
+		char := ""
+		if gb.isCorner(i, y) {
+			char = " "
+		} else if y == ROW_OFFSET {
+			char = "_"
+		} else if y == gb.Height-1 {
+			char = "▔"
+		} else {
+			if i == 0 || i == gb.Width-1 {
+				char = "|"
+			} else {
+				char = "·"
+			}
+		}
+		emptyRow = append(emptyRow, char)
+	}
+	return emptyRow
+}
+
+func (gb *GameBoard) drawScore(parent [][]string) [][]string {
+	view := parent
+	scoreStr := strings.Split(fmt.Sprintf("Score: %v", gb.Score), "")
+	if len(view[0]) == 0 {
+		panic("\nLength of first row in view is too small to contain score string, process will exit\n")
+	}
+	for i, c := range scoreStr {
+		view[0][i] = c
+	}
+	return view
+}
+
+// example of score: `Score: 0`, `Score: 100`
+func (gb *GameBoard) Draw(parent [][]string, paddingX int, paddingY int) [][]string {
+	view := parent
+	limit := gb.Width * gb.Height
+	currentRow := ROW_OFFSET
+	for i := 0; i < limit; i++ {
+		if i > 0 && i%gb.Width == 0 {
+			view[currentRow] = gb.makeEmptyRow(currentRow)
+			currentRow++
 		}
 	}
-	// @TODO: this doesn't take into account when we have overlapping characters with the snake I guess
-	// if x == 0 || x == gb.Width-1 {
-	// 	return "|"
-	// } else
-	// leaving this here for if I want to handle corners differently ever
-	if (x == 0 && (y == 0 || y == gb.Height-1)) || (x == gb.Width-1 && (y == 0 || y == gb.Height-1)) {
-		return " "
-	} else if y == 0 {
-		return "-"
-	} else if y == gb.Height-1 {
-		return "-"
-	} else if x == 0 || x == gb.Width-1 {
-		return "|"
+	view = gb.drawScore(view)
+	if gb.Food != nil {
+		view = gb.Food.Draw(view)
 	}
-	return "·"
+	view = gb.Snake.Draw(view)
+	return view
 }
